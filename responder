@@ -1,0 +1,309 @@
+#include <reg51.h>
+#include <I2C.h>
+#include <intrins.h>
+#define uchar unsigned char
+#define uint unsigned int
+int second;
+uchar i=20;
+uchar discode[]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f};
+uchar show[]={0xff,0xff,0xff,0xff};
+uchar second1;
+uchar second10;
+uchar grade_a=0;
+uchar grade_b=0;
+uchar grade_c=0;
+uchar grade_d=0;
+uint j=532*2;
+uchar flag=1;
+int temp=0;
+int s=0;
+sbit STA=P1^0;
+sbit CLEAR=P1^1;
+sbit CLK=P1^2;
+sbit P20=P2^0;
+sbit P21=P2^1;
+sbit P22=P2^2;
+sbit P23=P2^3;
+
+sbit P17=P1^7;
+
+sbit a=P2^4;
+sbit b=P2^5;
+sbit c=P2^6;
+sbit d=P2^7;
+
+
+
+void start();
+void delay();
+void display();
+void key();
+void clear();
+
+
+
+
+void main()
+{  
+  PCF8591Send(0x90,0x40);
+	second=PCF8591Read(0x90)*30/255+20;
+	
+	
+	show[0]=second/10;
+	show[1]=second%10;
+	start();
+	while(1)
+	{ 
+		
+		if(STA==1)
+		{
+			PCF8591Send(0x90,0x40);
+	    second=PCF8591Read(0x90)*30/255+20;
+			
+			show[0]=second/10;
+	    show[1]=second%10;
+			flag=1;
+			TR0=0;
+			
+		}
+		if((STA==0)&(second!=0)&flag)
+			TR0=1;
+		key();
+		display();
+    clear();		
+	}
+
+}
+
+
+void start()
+{
+	a=1;
+	b=1;
+	c=1;
+	d=1;
+	P17=0;
+	TMOD=0X11;
+	TH0=0X4C;
+	TL0=0X00;
+	TH1=0XFC;
+	TL1=0X8F;
+	EA=1;
+	ET0=1;
+	ET1=1;
+	EX0=1;
+	IT0=1;
+}
+void timer_0() interrupt 1
+{
+	TH0=0X4C;
+	TL0=0X00;
+	i--;
+	if(i==0)
+	{
+		i=20;
+		second--;
+		if(second==0)
+		{
+			TR0=0;
+			
+		}
+		show[0]=second/10;
+		show[1]=second%10;
+	}
+}
+
+void display()
+{
+	  
+	P0=~discode[show[0]];
+	P20=0;
+  delay();
+	P20=1;
+	
+	P0=~discode[show[1]];
+	P21=0;
+  delay();
+	P21=1;
+	
+	P0=~discode[show[2]];
+	if((STA==1)||((STA==0)&(flag==1)))
+		P22=1;
+	else P22=0;
+  delay();
+	P22=1;
+	
+	P0=~discode[show[3]];
+	if((STA==1)||((STA==0)&(flag==1)))
+		P23=1;
+	else P23=0;
+  delay();
+	P23=1;
+
+}
+
+void delay()
+{
+	uchar k=0;
+	for(;k<125;k++)
+	{
+	}
+}
+
+
+void key()
+{
+	uchar k;
+	if((a==0)&b&c&d&(flag==1))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((a==0)&b&c&d&(flag==1))
+		{
+			TR0=0;
+			flag=0;
+			show[2]=1;
+			show[3]=grade_a;
+		}
+	}
+	if((b==0)&a&c&d&(flag==1))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((b==0)&a&c&d&(flag==1))
+		{
+			TR0=0;
+			flag=0;
+			show[2]=2;
+			show[3]=grade_b;
+		}
+	}
+	if((c==0)&b&a&d&(flag==1))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((c==0)&b&d&a&(flag==1))
+		{
+			TR0=0;
+			flag=0;
+			show[2]=3;
+			show[3]=grade_c;
+		}
+	}
+	if((d==0)&b&c&a&(flag==1))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((d==0)&b&c&a&(flag==1))
+		{
+			TR0=0;
+			flag=0;
+			show[2]=4;
+			show[3]=grade_d;
+		}
+	}
+	
+	if((flag==0)&(show[2]==1)&(!(b&c&d)))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((flag==0)&(show[2]==1)&(!(b&c&d)))
+			TR1=1;
+	}
+	if((flag==0)&(show[2]==2)&(!(a&c&d)))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((flag==0)&(show[2]==2)&(!(a&c&d)))
+			TR1=1;
+	}
+	if((flag==0)&(show[2]==3)&(!(b&a&d)))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((flag==0)&(show[2]==3)&(!(b&a&d)))
+			TR1=1;
+	}
+	if((flag==0)&(show[2]==4)&(!(b&c&a)))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+	if((flag==0)&(show[2]==4)&(!(b&c&a)))
+		TR1=1;
+  }
+	if((STA==1)&(!(a&b&c&d)))
+	{
+		for(k=1;k>0;k--)
+		{
+			delay();
+		}
+		if((STA==1)&(!(a&b&c&d)))
+			TR1=1;
+	}
+		
+		
+}
+
+void int0() interrupt 0
+{
+	if(show[2]==1)
+	{
+		grade_a ++;
+		show[3]=grade_a;
+	}
+	if(show[2]==2)
+	{
+		grade_b ++;
+		show[3]=grade_b;
+	}
+	if(show[2]==3)
+	{
+		grade_c ++;
+		show[3]=grade_c;
+	}
+	if(show[2]==4)
+	{
+		grade_d ++;
+		show[3]=grade_d;
+	}
+}
+
+void clear()
+{
+	if(CLEAR==0)
+	{
+		grade_a=0;
+		grade_b=0;
+		grade_c=0;
+		grade_d=0;
+	}
+}
+
+void sound() interrupt 3
+{
+	TH1=0Xfc;
+	TL1=0X8f;
+	j--;
+	CLK=~CLK;
+	if(j==0)
+	{
+		TR1=0;
+		j=523*2;
+	}
+}
